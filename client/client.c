@@ -89,6 +89,31 @@ int main(int argc, char *argv[], char *env[])
       n = read(sfd, ans, MAX);
       printf("%s\n", ans);
     }
+    else if(strcmp(args[0], "lcd") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("lcd FAILED - not enough arguments\n");
+        continue;
+      }
+
+      int returnValue = chdir(args[1]);
+
+      if(returnValue < 0)
+      {
+        printf("lcd FAILED - could not chidr to path\n");
+      }
+      else 
+      {
+        printf("lcd OK\n");
+      }
+    }
+    else if (strcmp(args[0], "cd") == 0)
+    {
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      printf("%s\n", ans);
+    }
 
     /*
     // Send ENTIRE line to server

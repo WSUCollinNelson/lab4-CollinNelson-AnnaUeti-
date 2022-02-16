@@ -101,11 +101,30 @@ int main()
 
         tokenize(line);
 
-        if(strcmp(line, "pwd") == 0)
+        if(strcmp(args[0], "pwd") == 0)
         {
           char cwdBuffer[PATH_MAX];
           getcwd(cwdBuffer, PATH_MAX);
           n = write(cfd, cwdBuffer, MAX);
+        }
+        else if(strcmp(args[0], "cd") == 0)
+        {
+          if(argCount < 2)
+          {
+            n = write(cfd, "cd FAILED - not enough arguments", MAX);
+            continue;
+          }
+
+          int returnValue = chdir(args[1]);
+
+          if(returnValue < 0)
+          {
+            n = write(cfd, "lcd FAILED - could not chidr to path", MAX);
+          }
+          else 
+          {
+            n = write(cfd, "lcd OK", MAX);
+          }
         }
 
         /*
