@@ -19,11 +19,25 @@
 #define MAX 256
 #define PORT 2222
 
-char line[MAX], ans[MAX];
+char line[MAX], ans[MAX], tokenBuffer[MAX];
+char *args[8];
+int argCount;
 int n;
 
 struct sockaddr_in saddr; 
 int sfd;
+
+int tokenize(char *line)
+{
+  strcpy(tokenBuffer, line);
+  args[0] = strtok(tokenBuffer, " ");
+  int i = 1;
+  while(args[i++] = strtok(NULL, " "))
+  {
+    continue;
+  }
+  argCount = i;
+}
 
 int main(int argc, char *argv[], char *env[]) 
 { 
@@ -59,6 +73,24 @@ int main(int argc, char *argv[], char *env[])
     if (line[0]==0)                  // exit if NULL line
       exit(0);
 
+    tokenize(line);
+
+    printf("cmd: %s\n", args[0]);
+
+    if(strcmp(args[0], "lpwd") == 0)
+    {
+      char cwdBuffer[PATH_MAX];
+      getcwd(cwdBuffer, PATH_MAX);
+      printf("%s\n", cwdBuffer);
+    }
+    else if(strcmp(args[0], "pwd") == 0)
+    {
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      printf("%s\n", ans);
+    }
+
+    /*
     // Send ENTIRE line to server
     n = write(sfd, line, MAX);
     printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
@@ -66,6 +98,7 @@ int main(int argc, char *argv[], char *env[])
     // Read a line from sock and show it
     n = read(sfd, ans, MAX);
     printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
+    */
   }
 }
 

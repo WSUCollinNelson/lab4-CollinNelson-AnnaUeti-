@@ -23,7 +23,21 @@
 int n;
 
 char ans[MAX];
-char line[MAX];
+char line[MAX], tokenBuffer[MAX];
+char *args[8];
+int argCount;
+
+int tokenize(char *line)
+{
+  strcpy(tokenBuffer, line);
+  args[0] = strtok(tokenBuffer, " ");
+  int i = 1;
+  while(args[i++] = strtok(NULL, " "))
+  {
+    continue;
+  }
+  argCount = i;
+}
 
 int main() 
 { 
@@ -85,6 +99,16 @@ int main()
         // show the line string
         printf("server: read  n=%d bytes; line=[%s]\n", n, line);
 
+        tokenize(line);
+
+        if(strcmp(line, "pwd") == 0)
+        {
+          char cwdBuffer[PATH_MAX];
+          getcwd(cwdBuffer, PATH_MAX);
+          n = write(cfd, cwdBuffer, MAX);
+        }
+
+        /*
         strcat(line, " ECHO");
 
         // send the echo line to client 
@@ -92,6 +116,7 @@ int main()
 
         printf("server: wrote n=%d bytes; ECHO=[%s]\n", n, line);
         printf("server: ready for next request\n");
+        */
       }
     }
   }
