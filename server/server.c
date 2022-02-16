@@ -36,7 +36,7 @@ int tokenize(char *line)
   {
     continue;
   }
-  argCount = i;
+  argCount = i-1;
 }
 
 int main() 
@@ -125,6 +125,52 @@ int main()
           {
             n = write(cfd, "lcd OK", MAX);
           }
+        }
+        else if (strcmp(args[0], "ls") == 0)
+        {
+          char lsPath[PATH_MAX];
+          if(argCount < 2)
+          {
+            getcwd(lsPath, PATH_MAX);
+          }
+          else
+          {
+            strcpy(lsPath, args[1]);
+          }
+
+          DIR *dir = opendir(lsPath);
+
+          if(dir != NULL)
+          {
+            struct dirent *dp = NULL;
+            while(dp = readdir(dir))
+            {
+              n = write(cfd, dp->d_name, MAX);
+            }
+            closedir(dir);
+          }
+          else
+          {
+            n = write(cfd, "ls FAILED - could not locate directory", MAX);
+          }
+          n = write(cfd, "", MAX);
+        }
+        else if(strcmp(args[0], "put") == 0)
+        {
+          int fd = open(args[1], O_WRONLY|O_TRUNC|O_CREAT);
+          n = read(cfd, ans, MAX);
+          int transferRemaining = atoi(ans);
+          printf("Transfering: %d bytes\n",transferRemaining);
+          while(transferRemaining > MAX)
+          {
+            n = read(cfd, ans, MAX);
+            write(fd, ans, MAX);
+            transferRemaining -= MAX;
+          }
+          n=read(cfd, ans, transferRemaining);
+          write(fd, ans, transferRemaining);
+          
+          close(fd);
         }
 
         /*

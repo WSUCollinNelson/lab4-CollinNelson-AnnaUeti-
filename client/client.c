@@ -36,7 +36,7 @@ int tokenize(char *line)
   {
     continue;
   }
-  argCount = i;
+  argCount = i-1;
 }
 
 int main(int argc, char *argv[], char *env[]) 
@@ -113,6 +113,82 @@ int main(int argc, char *argv[], char *env[])
       n = write(sfd, line, MAX);
       n = read(sfd, ans, MAX);
       printf("%s\n", ans);
+    }
+    else if (strcmp(args[0], "lls") == 0)
+    {
+      char lsPath[PATH_MAX];
+      if(argCount < 2)
+      {
+        getcwd(lsPath, PATH_MAX);
+      }
+      else
+      {
+        strcpy(lsPath, args[1]);
+      }
+
+      DIR *dir = opendir(lsPath);
+
+      if(dir != NULL)
+      {
+        struct dirent *dp = NULL;
+        while(dp = readdir(dir))
+        {
+          printf("%s    ", dp->d_name);
+        }
+        closedir(dir);
+        printf("\n");
+      }
+      else
+      {
+        printf("lls FAILED - could not locate directory\n");
+      }
+    }
+    else if(strcmp(args[0], "ls") == 0)
+    {
+      n = write(sfd, line, MAX);
+
+      while(1)
+      {
+        n = read(sfd, ans, MAX);
+        if(strlen(ans) == 0) break;
+        printf("%s    ", ans);
+      }
+      printf("\n");
+    }
+    else if(strcmp(args[0], "put") == 0)
+    {
+      struct stat fileStats;
+      printf("%s\n", args[1]);
+      int returnCode = stat(args[1], &fileStats);
+
+      if(returnCode < 0)
+      {
+        char error[100];
+        perror(error);
+        printf("put FAILED - cannot find file\n");
+        continue;
+      }
+
+      //Send put request to server, then send file size
+      n = write(sfd, line, MAX);
+      int fd = open(args[1], O_RDONLY);
+      char sizeString[128];
+      sprintf(sizeString, "%ld", fileStats.st_size);
+      printf("Transfering %s bytes.\n", sizeString);
+      n = write(sfd, sizeString, MAX);
+
+      //Transfer data
+      int transferRemaining = fileStats.st_size;
+      void *fileBuffer[MAX];
+      while(transferRemaining > MAX)
+      {
+        read(fd, fileBuffer, MAX);
+        n = write(sfd, fileBuffer, MAX);
+        transferRemaining -= MAX;
+      }
+      read(fd, fileBuffer, transferRemaining);
+      n = write(sfd, fileBuffer, transferRemaining);
+      close(fd);
     }
 
     /*
