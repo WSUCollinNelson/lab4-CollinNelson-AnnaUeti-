@@ -172,6 +172,72 @@ int main()
           
           close(fd);
         }
+        else if(strcmp(args[0], "get") == 0)
+        {
+          struct stat fileStats;
+          printf("%s\n", args[1]);
+          int returnCode = stat(args[1], &fileStats);
+
+          if(returnCode < 0)
+          {
+            char error[100];
+            perror(error);
+            printf("get FAILED - cannot find file\n");
+            continue;
+          }
+
+          int fd = open(args[1], O_RDONLY);
+          char sizeString[128];
+          sprintf(sizeString, "%ld", fileStats.st_size);
+          printf("Transfering %s bytes.\n", sizeString);
+          n = write(cfd, sizeString, MAX);
+
+          //Transfer data
+          int transferRemaining = fileStats.st_size;
+          void *fileBuffer[MAX];
+          while(transferRemaining > MAX)
+          {
+            read(fd, fileBuffer, MAX);
+            n = write(cfd, fileBuffer, MAX);
+            transferRemaining -= MAX;
+          }
+          read(fd, fileBuffer, transferRemaining);
+          n = write(cfd, fileBuffer, transferRemaining);
+          close(fd);
+        }
+        else if(strcmp(args[0], "rm") == 0)
+        {
+          if(argCount < 2)
+          {
+            n = write(cfd, "rm FAILED - not enough arguments", MAX);
+            continue;
+          }      
+
+          remove(args[1]);
+          n = write(cfd, "rm OK\n", MAX);
+        }
+        else if(strcmp(args[0], "rmdir") == 0)
+        {
+          if(argCount < 2)
+          {
+            n = write(cfd, "rmdir FAILED - not enough arguments", MAX);
+            continue;
+          }      
+
+          rmdir(args[1]);
+          n = write(cfd, "rmdir OK\n", MAX);
+        }
+        else if(strcmp(args[0], "mkdir") == 0)
+        {
+          if(argCount < 2)
+          {
+            n = write(cfd, "mkdir FAILED - not enough arguments", MAX);
+            continue;
+          }      
+
+          mkdir(args[1], 0755);
+          n = write(cfd, "mkdir OK", MAX);
+        }
 
         /*
         strcat(line, " ECHO");

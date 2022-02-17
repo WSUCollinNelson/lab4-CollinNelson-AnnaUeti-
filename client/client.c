@@ -190,6 +190,109 @@ int main(int argc, char *argv[], char *env[])
       n = write(sfd, fileBuffer, transferRemaining);
       close(fd);
     }
+    else if(strcmp(args[0], "get") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("get FAILED - not enough arguments\n");
+        continue;
+      }  
+
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      int transferRemaining = atoi(ans);
+
+      if(transferRemaining > 0)
+      {
+        int fd = open(args[1], O_WRONLY|O_TRUNC|O_CREAT);
+        printf("Transfering: %d bytes\n",transferRemaining);
+        while(transferRemaining > MAX)
+        {
+          n = read(sfd, ans, MAX);
+          write(fd, ans, MAX);
+          transferRemaining -= MAX;
+        }
+        n=read(sfd, ans, transferRemaining);
+        write(fd, ans, transferRemaining);
+        
+        close(fd);
+      }
+    }
+    else if (strcmp(args[0], "lrm") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("lrm FAILED - not enough arguments\n");
+        continue;
+      }      
+
+      remove(args[1]);
+      printf("%s OK\n", args[0]);
+
+    }
+    else if (strcmp(args[0], "rm") == 0)
+    {
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      printf("%s\n", ans);
+    }
+    else if (strcmp(args[0], "lrmdir") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("lrmdir FAILED - not enough arguments\n");
+        continue;
+      }      
+
+      rmdir(args[1]);
+	    printf("%s OK\n", args[0]);
+
+    }
+    else if (strcmp(args[0], "rmdir") == 0)
+    {
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      printf("%s\n", ans);
+    }
+    else if (strcmp(args[0], "lmkdir") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("lmkdir FAILED - not enough arguments\n");
+        continue;
+      }      
+
+      mkdir(args[1], 0755);
+	    printf("%s OK\n", args[0]);
+
+    }
+    else if (strcmp(args[0], "mkdir") == 0)
+    {
+      n = write(sfd, line, MAX);
+      n = read(sfd, ans, MAX);
+      printf("%s\n", ans);
+    }
+    else if (strcmp(args[0], "lcat") == 0)
+    {
+      if(argCount < 2)
+      {
+        printf("lcat FAILED - not enough arguments\n");
+        continue;
+      }    
+
+      FILE* fileID = fopen(args[1], "r");
+      char currentChar = getc(fileID);
+
+      while(currentChar != EOF)
+      {
+        putchar(currentChar);
+        currentChar = getc(fileID);
+      }
+      
+      fclose(fileID);
+
+      printf("%s OK\n", args[0]);
+    }
 
     /*
     // Send ENTIRE line to server
