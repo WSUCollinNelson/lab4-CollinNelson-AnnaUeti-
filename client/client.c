@@ -43,6 +43,7 @@ int tokenize(char *line)
 
 int main(int argc, char *argv[], char *env[]) 
 { 
+  chroot("../");
   int n; char how[64];
   int i;
 
@@ -140,7 +141,11 @@ int main(int argc, char *argv[], char *env[])
         struct dirent *dp = NULL;
         while(dp = readdir(dir))
         {
-          ls_file(dp->d_name);
+          char filepath[MAX];
+          strcpy(filepath, lsPath);
+          strcat(filepath, "/");
+          strcat(filepath, dp->d_name);
+          ls_file(filepath);
         }
         closedir(dir);
       }

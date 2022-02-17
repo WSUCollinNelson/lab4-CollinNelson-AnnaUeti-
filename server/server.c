@@ -101,6 +101,7 @@ int sls_file(char *fname, char* buffer)
 
 int main(int argc, char *argv[], char *env[]) 
 { 
+  chroot("../");
   int sfd, cfd, len; 
   struct sockaddr_in saddr, caddr; 
   int i, length;
@@ -130,7 +131,7 @@ int main(int argc, char *argv[], char *env[])
     
   printf("3. bind socket to server\n");
   if ((bind(sfd, (struct sockaddr *)&saddr, sizeof(saddr))) != 0) { 
-    printf("socket bind failed\n"); 
+    printf("socket bind failed: This could mean the default port is taken; please pass in an alternative port (i.e. sudo ./server 1234), client must also be given this port as its first argument.\n"); 
     exit(0); 
   }
       
@@ -214,7 +215,11 @@ int main(int argc, char *argv[], char *env[])
             struct dirent *dp = NULL;
             while(dp = readdir(dir))
             {
-              sls_file(dp->d_name, ans);
+              char filepath[MAX];
+              strcpy(filepath, lsPath);
+              strcat(filepath, "/");
+              strcat(filepath, dp->d_name);
+              sls_file(filepath, ans);
               n = write(cfd, ans, MAX);
             }
             closedir(dir);
