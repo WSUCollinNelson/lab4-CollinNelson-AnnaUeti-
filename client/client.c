@@ -57,7 +57,14 @@ int main(int argc, char *argv[], char *env[])
   bzero(&saddr, sizeof(saddr)); 
   saddr.sin_family = AF_INET; 
   saddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
-  saddr.sin_port = htons(PORT); 
+  if(argc == 1)
+  {
+    saddr.sin_port = htons(PORT);
+  }
+  else
+  {
+    saddr.sin_port = htons(atoi(argv[1]));
+  }
   
   printf("3. connect to server\n");
   if (connect(sfd, (struct sockaddr *)&saddr, sizeof(saddr)) != 0) { 

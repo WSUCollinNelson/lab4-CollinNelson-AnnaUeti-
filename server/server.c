@@ -99,7 +99,7 @@ int sls_file(char *fname, char* buffer)
   strcat(buffer, tempBuffer);
 }
 
-int main() 
+int main(int argc, char *argv[], char *env[]) 
 { 
   int sfd, cfd, len; 
   struct sockaddr_in saddr, caddr; 
@@ -117,7 +117,16 @@ int main()
   saddr.sin_family = AF_INET; 
   //saddr.sin_addr.s_addr = htonl(INADDR_ANY); 
   saddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
-  saddr.sin_port = htons(PORT);
+
+  if(argc == 1)
+  {
+    saddr.sin_port = htons(PORT);
+  }
+  else
+  {
+    saddr.sin_port = htons(atoi(argv[1]));
+  }
+  
     
   printf("3. bind socket to server\n");
   if ((bind(sfd, (struct sockaddr *)&saddr, sizeof(saddr))) != 0) { 
