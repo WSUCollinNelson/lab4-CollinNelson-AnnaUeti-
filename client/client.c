@@ -17,12 +17,14 @@
 #include <time.h> 
 
 #define MAX 256
-#define PORT 2222
+#define PORT 2244
 
 char line[MAX], ans[MAX], tokenBuffer[MAX];
 char *args[8];
 int argCount;
 int n;
+char *t1 = "xrwxrwxrw-------";
+char *t2 = "----------------";
 
 struct sockaddr_in saddr; 
 int sfd;
@@ -74,8 +76,6 @@ int main(int argc, char *argv[], char *env[])
       exit(0);
 
     tokenize(line);
-
-    printf("cmd: %s\n", args[0]);
 
     if(strcmp(args[0], "lpwd") == 0)
     {
@@ -133,10 +133,9 @@ int main(int argc, char *argv[], char *env[])
         struct dirent *dp = NULL;
         while(dp = readdir(dir))
         {
-          printf("%s    ", dp->d_name);
+          ls_file(dp->d_name);
         }
         closedir(dir);
-        printf("\n");
       }
       else
       {
@@ -151,14 +150,12 @@ int main(int argc, char *argv[], char *env[])
       {
         n = read(sfd, ans, MAX);
         if(strlen(ans) == 0) break;
-        printf("%s    ", ans);
+        printf("%s", ans);
       }
-      printf("\n");
     }
     else if(strcmp(args[0], "put") == 0)
     {
       struct stat fileStats;
-      printf("%s\n", args[1]);
       int returnCode = stat(args[1], &fileStats);
 
       if(returnCode < 0)
@@ -216,6 +213,10 @@ int main(int argc, char *argv[], char *env[])
         write(fd, ans, transferRemaining);
         
         close(fd);
+      }
+      else
+      {
+        printf("%s", ans);
       }
     }
     else if (strcmp(args[0], "lrm") == 0)
@@ -293,32 +294,50 @@ int main(int argc, char *argv[], char *env[])
 
       printf("%s OK\n", args[0]);
     }
-
-    /*
-    // Send ENTIRE line to server
-    n = write(sfd, line, MAX);
-    printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
-
-    // Read a line from sock and show it
-    n = read(sfd, ans, MAX);
-    printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
-    */
   }
 }
 
+int ls_file(char *fname) 
+{ 
+  struct stat fstat, *sp; int r, i; 
+  char ftime[64]; sp = &fstat; 
+  if ( (r = lstat(fname, &fstat)) < 0)
+  { 
+    printf("can't stat %s\n", fname);
+    exit(1); 
+  } 
+  if ((sp->st_mode & 0xF000) == 0x8000) // if (S ISREG()) 
+    printf("%c", ' '); 
+  if ((sp->st_mode & 0xF000) == 0x4000) // if (S ISDIR()) 
+    printf("%c",'d'); 
+  if ((sp->st_mode & 0xF000) == 0xA000) // if (S ISLNK()) 
+    printf("%c",'l'); 
+  for (i=8; i >= 0; i-- )
+  { 
+    if (sp->st_mode & (1 << i)) // print r|w|x 
+      printf("%c", t1[i]); 
+    else printf("%c", t2[i]); // or print 
+  } 
+  printf("%4d ",sp->st_nlink); // link count 
 
-/********************* YOU DO ***********************
-    1. The assignment is the Project in 13.17.1 of Chapter 13
+  printf("%4d ",sp->st_gid); // gid 
+  printf("%4d ",sp->st_uid); // uid 
+  printf("%8d ",sp->st_size); // file size 
+  
+  // print time 
+  strcpy(ftime, ctime(&sp->st_ctime)); // print time in calendar form 
+  ftime[strlen(ftime) - 1] = 0; // kill \n at end 
 
-    2. Implement 2 sets of commands:
 
-      ********************** menu ***********************
-      * get  put  ls   cd   pwd   mkdir   rmdir   rm  *  // executed by server
-      * lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm  *  // executed LOACLLY (this file)
-      ***************************************************
-
-    3. EXTRA Credits: make the server MULTI-threaded by processes
-
-    Note: The client and server are in different folders on purpose.
-          Get and put should work when cwd of client and cwd of server are different.
-****************************************************/
+  printf("%s ",ftime); 
+  printf("%s", basename(fname)); // print file basename 
+  
+  // print -> linkname if symbolic file 
+  if ((sp->st_mode & 0xF000)== 0xA000)
+  { 
+    char linknameBuffer[NAME_MAX];
+    ssize_t linkname = readlink(fname, linknameBuffer, NAME_MAX); // use readlink() to read linkname 
+    printf(" > %s", linkname); // print linked name 
+  } 
+  printf("\n");
+}

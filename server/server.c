@@ -18,7 +18,7 @@
 #include <time.h>
 
 #define MAX 256
-#define PORT 2222
+#define PORT 2244
 
 int n;
 
@@ -26,6 +26,8 @@ char ans[MAX];
 char line[MAX], tokenBuffer[MAX];
 char *args[8];
 int argCount;
+char *t1 = "xrwxrwxrw-------";
+char *t2 = "----------------";
 
 int tokenize(char *line)
 {
@@ -37,6 +39,64 @@ int tokenize(char *line)
     continue;
   }
   argCount = i-1;
+}
+
+int sls_file(char *fname, char* buffer) 
+{ 
+  char tempBuffer[128];
+  buffer[0] = '\0';
+  struct stat fstat, *sp; int r, i; 
+  char ftime[64]; sp = &fstat; 
+  if ( (r = lstat(fname, &fstat)) < 0)
+  { 
+    sprintf(tempBuffer, "can't stat %s\n", fname);
+    exit(1); 
+  } 
+  if ((sp->st_mode & 0xF000) == 0x8000) // if (S ISREG()) 
+    sprintf(tempBuffer, "%c", ' '); 
+  if ((sp->st_mode & 0xF000) == 0x4000) // if (S ISDIR()) 
+    sprintf(tempBuffer, "%c",'d'); 
+  if ((sp->st_mode & 0xF000) == 0xA000) // if (S ISLNK()) 
+    sprintf(tempBuffer, "%c",'l'); 
+  strcat(buffer, tempBuffer);
+  for (i=8; i >= 0; i-- )
+  { 
+    if (sp->st_mode & (1 << i)) // print r|w|x 
+      sprintf(tempBuffer, "%c", t1[i]); 
+    else 
+      sprintf(tempBuffer, "%c", t2[i]); // or print 
+    strcat(buffer, tempBuffer);
+  } 
+  sprintf(tempBuffer, "%4d ",sp->st_nlink); // link count 
+  strcat(buffer, tempBuffer);
+
+  sprintf(tempBuffer, "%4d ",sp->st_gid); // gid 
+  strcat(buffer, tempBuffer);
+  sprintf(tempBuffer, "%4d ",sp->st_uid); // uid 
+  strcat(buffer, tempBuffer);
+  sprintf(tempBuffer, "%8d ",sp->st_size); // file size 
+  strcat(buffer, tempBuffer);
+  
+  // print time 
+  strcpy(ftime, ctime(&sp->st_ctime)); // print time in calendar form 
+  ftime[strlen(ftime) - 1] = 0; // kill \n at end 
+
+
+  sprintf(tempBuffer, "%s ",ftime); 
+  strcat(buffer, tempBuffer);
+  sprintf(tempBuffer, "%s", basename(fname)); // print file basename 
+  strcat(buffer, tempBuffer);
+  
+  // print -> linkname if symbolic file 
+  if ((sp->st_mode & 0xF000)== 0xA000)
+  { 
+    char linknameBuffer[NAME_MAX];
+    ssize_t linkname = readlink(fname, linknameBuffer, NAME_MAX); // use readlink() to read linkname 
+    sprintf(tempBuffer, " > %s", linkname); // print linked name 
+    strcat(buffer, tempBuffer);
+  } 
+  sprintf(tempBuffer, "\n");
+  strcat(buffer, tempBuffer);
 }
 
 int main() 
@@ -145,7 +205,8 @@ int main()
             struct dirent *dp = NULL;
             while(dp = readdir(dir))
             {
-              n = write(cfd, dp->d_name, MAX);
+              sls_file(dp->d_name, ans);
+              n = write(cfd, ans, MAX);
             }
             closedir(dir);
           }
@@ -160,7 +221,7 @@ int main()
           int fd = open(args[1], O_WRONLY|O_TRUNC|O_CREAT);
           n = read(cfd, ans, MAX);
           int transferRemaining = atoi(ans);
-          printf("Transfering: %d bytes\n",transferRemaining);
+          printf("Transfering: %d bytes",transferRemaining);
           while(transferRemaining > MAX)
           {
             n = read(cfd, ans, MAX);
@@ -175,14 +236,13 @@ int main()
         else if(strcmp(args[0], "get") == 0)
         {
           struct stat fileStats;
-          printf("%s\n", args[1]);
           int returnCode = stat(args[1], &fileStats);
 
           if(returnCode < 0)
           {
             char error[100];
             perror(error);
-            printf("get FAILED - cannot find file\n");
+            n = write(cfd, "get FAILED - cannot find file", MAX);
             continue;
           }
 
@@ -214,7 +274,7 @@ int main()
           }      
 
           remove(args[1]);
-          n = write(cfd, "rm OK\n", MAX);
+          n = write(cfd, "rm OK", MAX);
         }
         else if(strcmp(args[0], "rmdir") == 0)
         {
@@ -238,33 +298,7 @@ int main()
           mkdir(args[1], 0755);
           n = write(cfd, "mkdir OK", MAX);
         }
-
-        /*
-        strcat(line, " ECHO");
-
-        // send the echo line to client 
-        n = write(cfd, line, MAX);
-
-        printf("server: wrote n=%d bytes; ECHO=[%s]\n", n, line);
-        printf("server: ready for next request\n");
-        */
       }
     }
   }
 }
-
-/********************* YOU DO ***********************
-    1. The assignment is the Project in 13.17.1 of Chapter 13
-
-    2. Implement 2 sets of commands:
-
-      ********************** menu ***********************
-      * get  put  ls   cd   pwd   mkdir   rmdir   rm  *  // executed by server (this file)
-      * lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm  *  // executed LOACLLY
-      ***************************************************
-
-    3. EXTRA Credits: make the server MULTI-threaded by processes
-    
-    Note: The client and server are in different folders on purpose.
-          Get and put should work when cwd of client and cwd of server are different.
-****************************************************/
